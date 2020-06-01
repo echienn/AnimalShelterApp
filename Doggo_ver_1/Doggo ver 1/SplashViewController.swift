@@ -1,4 +1,12 @@
 //
+//  SplashViewController.swift
+//  Doggo ver 1
+//
+//  Created by Neha Kunjal on 5/31/20.
+//  Copyright © 2020 Elaine Chien. All rights reserved.
+//
+
+//
 //  ViewController.swift
 //  Doggo ver 1
 //
@@ -8,7 +16,7 @@
 
 import UIKit
 
-class ViewController: UIViewController {
+class SplashViewController: UIViewController {
     
     func displayLoadingVisuals() {
         let loadingImageView = UIImageView(image: UIImage(named: "dog_circle"))
@@ -77,4 +85,3 @@ class ViewController: UIViewController {
 
 
 }
-
