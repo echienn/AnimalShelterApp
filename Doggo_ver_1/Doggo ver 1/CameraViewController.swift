@@ -18,8 +18,8 @@ class CameraViewController: UIViewController {
         super.viewDidLoad()
         let cameraWidgets = UIView()
         cameraWidgets.translatesAutoresizingMaskIntoConstraints = false
-        //cameraWidgets.backgroundColor = .black
-        view.addSubview(cameraWidgets)
+        //cameraWidgets.backgroundColor = .red
+        
         
         let captureSession = AVCaptureSession()
         //captureSession.sessionPreset = .photo
@@ -41,6 +41,8 @@ class CameraViewController: UIViewController {
         let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
         previewLayer.frame = view.bounds
         view.layer.addSublayer(previewLayer)
+        
+        view.addSubview(cameraWidgets)
         
         let takePhotoButton = UIButton(type:.system)
         takePhotoButton.setImage(UIImage(named: "circle_icon"), for:.normal)
