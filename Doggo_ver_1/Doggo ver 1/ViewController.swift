@@ -29,5 +29,12 @@ class ViewController: UITabBarController {
         // Do any additional setup after loading the view.
     }
 
+    override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+        if UIDevice.current.userInterfaceIdiom == .phone {
+            return .portrait
+        } else {
+            return .all
+        }
+    }
 }
 
