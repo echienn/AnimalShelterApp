@@ -11,30 +11,21 @@
 import UIKit
 import AVFoundation
 
-class CameraViewController: UIViewController {
-    
+class CameraViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
 
+    var photoOutput: AVCapturePhotoOutput?
+    let captureSession = AVCaptureSession()
+    var capturedImage: UIImageView?
+    var captureDevice: AVCaptureDevice!
+    var takePhoto = false
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         let cameraWidgets = UIView()
         cameraWidgets.translatesAutoresizingMaskIntoConstraints = false
-        //cameraWidgets.backgroundColor = .red
+        cameraWidgets.backgroundColor = .black
         
-        
-        let captureSession = AVCaptureSession()
-        //captureSession.sessionPreset = .photo
-        
-        guard let captureDevice = AVCaptureDevice.default(for: .video) else{return}
-        guard let input = try? AVCaptureDeviceInput(device: captureDevice) else{return}
-        captureSession.addInput(input)
-        
-        let photoOutput = AVCapturePhotoOutput()
-        
-        if (captureSession.canAddInput(input) && captureSession.canAddOutput(photoOutput)){
-            captureSession.addInput(input)
-            captureSession.addOutput(photoOutput)
-        }
-        
+        setUpCamera()
     
         captureSession.startRunning()
         
@@ -44,6 +35,19 @@ class CameraViewController: UIViewController {
         
         view.addSubview(cameraWidgets)
         
+        let dataOutput = AVCaptureVideoDataOutput()
+        dataOutput.videoSettings = [(kCVPixelBufferPixelFormatTypeKey as String):NSNumber(value:kCVPixelFormatType_32BGRA)]
+        dataOutput.alwaysDiscardsLateVideoFrames = true
+        
+        if captureSession.canAddOutput(dataOutput) {
+            captureSession.addOutput(dataOutput)
+        }
+        captureSession.commitConfiguration()
+        
+        
+        let queue = DispatchQueue(label: "com.cameraQueue")
+        dataOutput.setSampleBufferDelegate(self, queue: queue)
+
         let takePhotoButton = UIButton(type:.system)
         takePhotoButton.setImage(UIImage(named: "circle_icon"), for:.normal)
         view.addSubview(takePhotoButton)
@@ -52,28 +56,71 @@ class CameraViewController: UIViewController {
         NSLayoutConstraint.activate([
         
         cameraWidgets.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-        cameraWidgets.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.25),
+        cameraWidgets.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.20),
         cameraWidgets.leadingAnchor.constraint(equalTo: view.leadingAnchor),
         cameraWidgets.trailingAnchor.constraint(equalTo: view.trailingAnchor),
         takePhotoButton.topAnchor.constraint(equalTo: cameraWidgets.topAnchor, constant: 10),
         takePhotoButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
         takePhotoButton.widthAnchor.constraint(equalToConstant: 75),
         takePhotoButton.heightAnchor.constraint(equalToConstant: 75)
-            ])
+        ])
         
-
+        takePhotoButton.addTarget(self, action:#selector(savePhoto), for: .touchUpInside)
+        
     }
 
+    @objc func savePhoto(sender: UIButton){
+        takePhoto = true
+    }
+
+    func setUpCamera() {
+        captureSession.sessionPreset = .photo
+        
+        guard let captureDevice = AVCaptureDevice.default(for: .video) else {return}
+        guard let input = try? AVCaptureDeviceInput(device: captureDevice) else {return}
+        captureSession.addInput(input)
+        
+        photoOutput = AVCapturePhotoOutput()
+        
+        if (captureSession.canAddInput(input)) {
+            captureSession.addInput(input)
+        }
+        
+        if (captureSession.canAddOutput(photoOutput!)){
+            captureSession.addOutput(photoOutput!)
+        }
+    }
+
+    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        if (takePhoto) {
+            takePhoto = false
+            if let image = self.getImageFromSampleBuffer(buffer: sampleBuffer) {
+                let editView = EditViewController()
+                editView.takenPhoto = image
+                
+                DispatchQueue.main.async {
+                    self.present(editView, animated: true, completion: nil)
+                }
+            }
+        }
+    }
     
-
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
+    func getImageFromSampleBuffer(buffer: CMSampleBuffer) -> UIImage? {
+        if let pixelBuffer = CMSampleBufferGetImageBuffer(buffer) {
+            let ciImage = CIImage(cvImageBuffer: pixelBuffer)
+            let context = CIContext()
+            
+            let imageRect = CGRect(x: 0, y: 0, width: CVPixelBufferGetWidth(pixelBuffer), height: CVPixelBufferGetHeight(pixelBuffer))
+            
+            if let image = context.createCGImage(ciImage, from: imageRect) {
+                return UIImage(cgImage: image, scale: UIScreen.main.scale, orientation: .right)
+            }
+        }
+        return nil
     }
-    */
-
+    
+    override func didReceiveMemoryWarning() {
+        super.didReceiveMemoryWarning()
+        // Dispose of any resources that can be recreated.
+    }
 }
