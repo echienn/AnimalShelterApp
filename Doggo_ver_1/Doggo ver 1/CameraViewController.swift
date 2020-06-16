@@ -13,17 +13,14 @@ import AVFoundation
 
 class CameraViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
 
-    var photoOutput: AVCapturePhotoOutput?
     let captureSession = AVCaptureSession()
     var capturedImage: UIImageView?
-    var captureDevice: AVCaptureDevice!
     var takePhoto = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
         let cameraWidgets = UIView()
         cameraWidgets.translatesAutoresizingMaskIntoConstraints = false
-        cameraWidgets.backgroundColor = .black
         
         setUpCamera()
     
@@ -35,18 +32,6 @@ class CameraViewController: UIViewController, AVCaptureVideoDataOutputSampleBuff
         
         view.addSubview(cameraWidgets)
         
-        let dataOutput = AVCaptureVideoDataOutput()
-        dataOutput.videoSettings = [(kCVPixelBufferPixelFormatTypeKey as String):NSNumber(value:kCVPixelFormatType_32BGRA)]
-        dataOutput.alwaysDiscardsLateVideoFrames = true
-        
-        if captureSession.canAddOutput(dataOutput) {
-            captureSession.addOutput(dataOutput)
-        }
-        captureSession.commitConfiguration()
-        
-        
-        let queue = DispatchQueue(label: "com.cameraQueue")
-        dataOutput.setSampleBufferDelegate(self, queue: queue)
 
         let takePhotoButton = UIButton(type:.system)
         takePhotoButton.setImage(UIImage(named: "circle_icon"), for:.normal)
@@ -56,7 +41,7 @@ class CameraViewController: UIViewController, AVCaptureVideoDataOutputSampleBuff
         NSLayoutConstraint.activate([
         
         cameraWidgets.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-        cameraWidgets.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.20),
+        cameraWidgets.heightAnchor.constraint(equalToConstant: 175),
         cameraWidgets.leadingAnchor.constraint(equalTo: view.leadingAnchor),
         cameraWidgets.trailingAnchor.constraint(equalTo: view.trailingAnchor),
         takePhotoButton.topAnchor.constraint(equalTo: cameraWidgets.topAnchor, constant: 10),
@@ -74,23 +59,29 @@ class CameraViewController: UIViewController, AVCaptureVideoDataOutputSampleBuff
     }
 
     func setUpCamera() {
-        captureSession.sessionPreset = .photo
+        //captureSession.sessionPreset = .photo
         
         guard let captureDevice = AVCaptureDevice.default(for: .video) else {return}
         guard let input = try? AVCaptureDeviceInput(device: captureDevice) else {return}
         captureSession.addInput(input)
         
-        photoOutput = AVCapturePhotoOutput()
-        
-        if (captureSession.canAddInput(input)) {
-            captureSession.addInput(input)
+        let dataOutput = AVCaptureVideoDataOutput()
+        dataOutput.videoSettings = [(kCVPixelBufferPixelFormatTypeKey as String):NSNumber(value:kCVPixelFormatType_32BGRA)]
+        dataOutput.alwaysDiscardsLateVideoFrames = true
+       
+        if captureSession.canAddOutput(dataOutput) {
+            captureSession.addOutput(dataOutput)
         }
-        
-        if (captureSession.canAddOutput(photoOutput!)){
-            captureSession.addOutput(photoOutput!)
-        }
+        captureSession.commitConfiguration()
+       
+        let queue = DispatchQueue(label: "com.cameraQueue")
+        dataOutput.setSampleBufferDelegate(self, queue: queue)
+       
     }
 
+    //instance method of AVCaptureVideoDataOutputSampleBufferDelegate class that we are extending.
+    //always running
+    //TODO: The first time we take a photo there is a lot of buffering. We need to figure out how to fix this. 
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         if (takePhoto) {
             takePhoto = false
